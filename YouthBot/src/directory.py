@@ -2,8 +2,11 @@ import os
 import json
 
 # Create dictionary
-with open("info.json", "r") as file:
-    values = json.load(file)
+if os.path.exists("info.json"):
+    with open("info.json", "r") as file:
+        values = json.load(file)
+else:
+    values = {}
 
 # To get and update people's info
 class Directory:

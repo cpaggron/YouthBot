@@ -10,10 +10,35 @@ from discord.ext import menus
 intents = discord.Intents.default()
 intents.members = True
 client = commands.Bot(command_prefix = 'c+', intents=intents)
+client.remove_command('help')
 
 @client.event
 async def on_ready():
     print('Bot is Ready')
+
+    # Set bot status
+    await client.change_presence(activity=discord.Activity(status=discord.Status.online, type=discord.ActivityType.watching, name=f"You 👀 | c+help"))
+
+@client.command()
+async def status(ctx):
+    await ctx.send("Choose one of the following types:```\nplaying\nwatching\nlistening```")
+    ans1 = await client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
+    if ans1.content == "playing":
+        type = discord.ActivityType.playing
+    elif ans1.content == "watching":
+        type = discord.ActivityType.watching
+    elif ans1.content == "listening":
+        type = discord.ActivityType.listening
+    await ctx.send("Enter the message:")
+    ans2 = await client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
+    await client.change_presence(activity=discord.Activity(status=discord.Status.online, type=type, name=ans2.content))
+    await ctx.send("Status updated")
+
+    channel = client.get_channel(837926123492343849)
+    embed = discord.Embed(title="Bot Status Updated", description=f"{ans1.content} {ans2.content}", color=0)
+    embed.set_footer(text=f"Status updated by {ctx.author}")
+    await channel.send(embed=embed)
+
 
 if os.path.exists('info.json'):
     with open ('info.json', 'r') as ILoveYouYouLoveMeWeAreOneBigFamily:
@@ -25,34 +50,98 @@ else:
 async def ping(ctx):
     await ctx.send(f'({client.latency * 10000})ms pong!')
 
+# Help command area ------------------------------------------------------------------------------
+
+class Help(menus.Menu):
+
+    async def send_initial_message(self, ctx, channel):
+        embed = discord.Embed(title="Help", description="```\n🗓️ Calendar\n📑 Directory\n📰 Events\n🏓 Fun Commands\n```\nDo not include [] for args. If * comes before the name, it means that one arg is multiple and if * comes after, that means that it's an optional arg.\n[Check out the bot's GitHub!](https://github.com/cpaggron/YouthBot)", color=0)
+        return await channel.send(embed=embed)
+
+    @menus.button('🏛️')
+    async def a(self, payload):
+        embed = discord.Embed(title="Help", description="```\n🗓️ Calendar\n📑 Directory\n📰 Events\n🏓 Fun Commands\n```\nDo not include [] for args. If * comes before the name, it means that one arg is multiple and if * comes after, that means that it's an optional arg.\n[Check out the bot's GitHub!](https://github.com/cpaggron/YouthBot)", color=0)
+        return await self.message.edit(embed=embed)
+    
+    @menus.button('🗓️')
+    async def b(self, payload):
+        embed = discord.Embed(title="Calendar Commands", description="Calendar features coming soon", color=0)
+        await self.message.edit(embed=embed)
+
+    @menus.button('📑')
+    async def c(self, payload):
+        embed = discord.Embed(title="Directory Commands", description="Here are the directory commands.", color=0)
+        embed.add_field(name="Information [user*]", value="To see a user's info", inline=False)
+        embed.add_field(name="Update", value="To update your info", inline=False)
+        await self.message.edit(embed=embed)
+        
+    @menus.button('📰')
+    async def d(self, payload):
+        embed = discord.Embed(title="Event Commands", description="Here are the event commands.", color=0)
+        embed.add_field(name="New", value="To create a new event", inline=False)
+        embed.add_field(name="Remove_Event [event number]", value="To remove an event", inline=False)
+        embed.add_field(name="Events", value="To view the events", inline=False)
+        embed.add_field(name="Poll [Question] [*Options]", value="To create a poll (Put options and question in \"\")", inline=False)
+        await self.message.edit(embed=embed)
+        
+    @menus.button('🏓')
+    async def e(self, payload):
+        embed = discord.Embed(title="Role Commands", description="Here are the role commands.", color=0)
+        embed.add_field(name="Verse", value="To get a random Bible verse.", inline=False)
+        embed.add_field(name="Ping", value="Pong", inline=False)
+        embed.add_field(name="Status", value="Change the bot's status", inline=False)
+        await self.message.edit(embed=embed)
+
+    @menus.button('⏹️')
+    async def on_stop(self, payload):
+        self.stop()
+
+@client.command()
+async def help(ctx):
+    await Help().start(ctx)
+
+# ------------------------------------------------------------------------------------------------
+
 # Info Commands Below ----------------------------------------------------------------------------------------------------
 
-@client.command(aliases=["info", "i"])
+@client.command(aliases=["info"])
 async def information(ctx, *, person=None):
 
-    with open("info.json", "r") as file:
-        info = json.load(file)
-
     if person == None:
-        user = str(ctx.author.id)
-        person = ctx.author
-    else:
-        user = str(person.id)
 
-    discriminator = str(person)[-5:]
+        with open("info.json", "r") as file:
+            info = json.load(file)
 
-    embed = discord.Embed(title=f"{person.name}", description=f"*{discriminator}*", color=info[user]["color"])
-    embed.set_thumbnail(url=ctx.author.avatar_url)
-    embed.add_field(name="Name", value=info[user]["name"], inline=True)
-    embed.add_field(name="Address", value=f'||{info[user]["address"]}||', inline=True)
-    embed.add_field(name="Age", value=info[user]["age"], inline=True)
-    embed.add_field(name="Grade", value=info[user]["grade"], inline=True)
-    embed.add_field(name="School", value=info[user]["school"], inline=True)
-    embed.add_field(name="Birthday", value=info[user]["birthday"], inline=True)
-    embed.add_field(name="Ice Cream/Frozen Yoghurt", value=info[user]["ice cream"], inline=True)
-    embed.add_field(name="Description", value=info[user]["about"], inline=False)
-    embed.set_footer(text="One Youth Fellowship")
-    await ctx.send(embed=embed)
+        if person == None:
+            user = str(ctx.author.id)
+            person = ctx.author
+        else:
+            user = str(person.id)
+
+        discriminator = str(person)[-5:]
+
+        embed = discord.Embed(title=f"{person.name}", description=f"*{discriminator}*", color=info[user]["color"])
+        embed.set_thumbnail(url=ctx.author.avatar_url)
+        embed.add_field(name="Name", value=info[user]["name"], inline=True)
+        embed.add_field(name="Address", value=f'||{info[user]["address"]}||', inline=True)
+        embed.add_field(name="Age", value=info[user]["age"], inline=True)
+        embed.add_field(name="Grade", value=info[user]["grade"], inline=True)
+        embed.add_field(name="School", value=info[user]["school"], inline=True)
+        embed.add_field(name="Birthday", value=info[user]["birthday"], inline=True)
+        embed.add_field(name="Ice Cream/Frozen Yoghurt", value=info[user]["ice cream"], inline=True)
+        embed.add_field(name="Description", value=info[user]["about"], inline=False)
+        embed.set_footer(text="One Youth Fellowship")
+        await ctx.send(embed=embed)
+
+# One time use commands. Only allowed to be used by me.
+
+@client.command()
+async def reset(ctx):
+    if ctx.author.id == 468476776104853505:
+        channel = client.get_channel(837926123492343849)
+        await channel.purge(limit=10000000)
+        channel = client.get_channel(837926124394643477)
+        await channel.purge(limit=10000000)
 
 @client.command()
 async def collectInfo(ctx):
@@ -66,6 +155,23 @@ async def collectInfo(ctx):
     else:
         await ctx.send("You aren't allowed to use that!")
 
+@client.command()
+async def config(ctx):
+    if ctx.author.id == 468476776104853505:
+        guild = client.get_guild(441462565948620812)
+        await ctx.guild.create_category("Bot Area")
+        name = 'Bot Area'
+        category = discord.utils.get(guild.categories, name=name)
+
+        await guild.create_text_channel("bot-log", category=category)
+        await guild.create_text_channel("bot-play", category=category)
+        channel = discord.utils.get(guild.channels, name="bot-log")
+        await channel.set_permissions(guild.default_role, send_messages=False)
+
+    else:
+        await ctx.send("You aren't allowed to use that!")
+        
+# ----------------------------------------------------------
 
 @client.command()
 async def update(ctx, *, select:str=None):
@@ -178,54 +284,53 @@ async def update(ctx, *, select:str=None):
             # Create list of colors
             colors = ["red", "orange", "yellow", "green", "blue", "purple", "brown", "black", "white"]
 
-            q = ''
+            q = ""
             for color in colors:
                 q += f"{color}\n"
-                print(color)
 
-            msg = await ctx.send(f"{ctx.author.mention} Type one of the following corresponding with your favorite color.\n```{q}\n```")
+            msg = await ctx.send(f"{ctx.author.mention} Type one of the following corresponding with your favorite color.\n```\n{q}\n```")
             # Add reactions
             
             reply = await client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
 
-            if str(reply) == "red":
+            if reply.content == "red":
                 await msg.edit(content="Your color has been changed to red!")
                 value = 15158332
 
-            elif str(reply) == "orange":
+            elif reply.content == "orange":
                 await msg.edit(content="Your color has been changed to orange!")
                 value = 15105570
 
-            elif str(reply) == "yellow":
+            elif reply.content == "yellow":
                 await msg.edit(content="Your color has been changed to yellow!")
                 value = 15844367
 
-            elif str(reply) == "green":
+            elif reply.content == "green":
                 await msg.edit(content="Your color has been changed to green!")
                 value = 3066993
 
-            elif str(reply) == "blue":
+            elif reply.content == "blue":
                 await msg.edit(content="Your color has been changed to blue!")
                 value = 3447003
 
-            elif str(reply) == "purple":
+            elif reply.content == "purple":
                 await msg.edit(content="Your color has been changed to purple!")
                 value = 10181046
 
-            elif str(reply) == "brown":
+            elif reply.content == "brown":
                 await msg.edit(content="Your color has been changed to brown!")
                 value = 11027200
 
-            elif str(reply) == "black":
+            elif reply.content == "black":
                 await msg.edit(content="Your color has been changed to black!")
                 value = 0
 
-            elif str(reply) == "white":
+            elif reply.content == "white":
                 await msg.edit(content="Your color has been changed to white!")
                 value = "#ffffff"
 
             else:
-                await ctx.send(f"`{str(reply)}` is not a valid color!")
+                await ctx.send(f"`{reply.content}` is not a valid color!")
                 value = 0
 
         try:      
@@ -236,7 +341,192 @@ async def update(ctx, *, select:str=None):
     else:
         await ctx.send(f"Invalid argument: `{select}`")
 
-# --------------------------------------------------------------------------------------------------------------------
+
+# RSVP Commands Below -----------------------------------------------------------------------------
+ 
+# Create the list of events
+if os.path.exists("events.json"): 
+    with open("events.json", "r") as file:
+        events_list = json.load(file)
+else:
+    events_list = []
+
+
+# Create format function for later use
+def format_availability(list: list):
+
+    # Format Yes
+    if len(list) == 0:
+        people = "-"
+    else:
+        people = ""
+        for person in list:
+            people += f"> {person}\n"
+    return people
+
+# Update events JSON file function
+def eventSave():
+    with open("events.json", "w+") as i:
+        json.dump(events_list, i)
+    
+
+@client.command()
+async def new(ctx):
+    try:
+        await ctx.author.send("What's the title of the event? (Highly suggested: Incude date)")
+        title = await client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
+        await ctx.author.send("What's the description?")
+        description = await client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=60)
+        
+        event = {}
+        event["title"] = title.content
+        event["description"] = description.content
+        event["yes"] = ""
+        event["no"] = ""
+        event["maybe"] = ""
+        events_list.append(event)
+
+        # Send Update to audit log channel
+        channel = client.get_channel(837926123492343849)
+        embed = discord.Embed(title="New Event Added", description=f"__{title.content}__", color=0)
+        embed.set_footer(text=f"Event added by {ctx.author}")
+        await channel.send(embed=embed)
+        eventSave()
+    except TimeoutError:
+        await ctx.author.send("You took too long! Please try again.")
+
+@client.command()
+async def events(ctx, queue: int=None):
+    if queue == None:
+        list_of_events = ""
+        event_num = 1
+
+        # Format the list of events
+        for event in events_list:
+            list_of_events += f"`{event_num}` __{event['title']}__\n"
+            event_num += 1
+
+        embed = discord.Embed(title="Events", description=f"{list_of_events}\n*Enter the command `c+events [number on list]` to update your availability*", color=0)
+        await ctx.send(embed=embed)
+
+    else:
+        try:
+            event = events_list[queue-1]
+            embed = discord.Embed(title=event["title"], description=event["description"], color=0)
+            embed.add_field(name="✅ Yes", value=format_availability(event["yes"]), inline=True)
+            embed.add_field(name="❌ No", value=format_availability(event["no"]), inline=True)
+            embed.add_field(name="❔ Maybe", value=format_availability(event["maybe"]), inline=True)
+            msg = await ctx.send(embed=embed)
+
+            # Add emojis to the message
+            for emoji in ["✅", "❌", "❔"]:
+                await msg.add_reaction(emoji)
+
+            # Check for reaction
+            def check(reaction, user):
+                return str(reaction.emoji) in ["✅", "❌", "❔"] and user != client.user
+
+            watching_for_reactions = True
+            while watching_for_reactions:
+                try:
+                    reaction, user = await client.wait_for("reaction_add", timeout=15, check=check)
+                except asyncio.TimeoutError:
+                    break
+
+                # Check mark
+                if str(reaction.emoji) == "✅":
+                    await msg.remove_reaction("✅", user)
+                    if type(event["yes"]) == list:
+                        if user.name in event["yes"]:
+                            event["yes"].remove(user.name)
+                        elif type(event["no"]) == list and user.name in event["no"]:
+                            event["no"].remove(user.name)
+                            event["yes"].append(user.name)
+                        elif type(event["maybe"]) == list and user.name in event["maybe"]:
+                            event["maybe"].remove(user.name)
+                            event["yes"].append(user.name)
+                        else:
+                            event["yes"].append(user.name)
+                    else:
+                        event["yes"] = []
+                        event["yes"].append(user.name)
+
+                    embed = discord.Embed(title=event["title"], description=event["description"], color=0)
+                    embed.add_field(name="✅ Yes", value=format_availability(event["yes"]), inline=True)
+                    embed.add_field(name="❌ No", value=format_availability(event["no"]), inline=True)
+                    embed.add_field(name="❔ Maybe", value=format_availability(event["maybe"]), inline=True)
+                    await msg.edit(embed=embed)
+                    eventSave()
+
+                # X
+                elif str(reaction.emoji) == "❌":
+                    await msg.remove_reaction("❌", user)
+                    if type(event["no"]) == list:
+                        if user.name in event["no"]:
+                            event["no"].remove(user.name)
+                        elif type(event["yes"]) == list and user.name in event["yes"]:
+                            event["yes"].remove(user.name)
+                            event["no"].append(user.name)
+                        elif type(event["maybe"]) == list and user.name in event["maybe"]:
+                            event["maybe"].remove(user.name)
+                            event["no"].append(user.name)
+                        else:
+                            event["no"].append(user.name)
+                    else:
+                        event["no"] = []
+                        event["no"].append(user.name)
+
+                    embed = discord.Embed(title=event["title"], description=event["description"], color=0)
+                    embed.add_field(name="✅ Yes", value=format_availability(event["yes"]), inline=True)
+                    embed.add_field(name="❌ No", value=format_availability(event["no"]), inline=True)
+                    embed.add_field(name="❔ Maybe", value=format_availability(event["maybe"]), inline=True)
+                    await msg.edit(embed=embed)
+                    eventSave()
+
+                # Question Mark
+                elif str(reaction.emoji) == "❔":
+                    await msg.remove_reaction("❔", user)
+                    if type(event["maybe"]) == list:
+                        if user.name in event["maybe"]:
+                            event["maybe"].remove(user.name)
+                        elif type(event["yes"]) == list and user.name in event["yes"]:
+                            event["yes"].remove(user.name)
+                            event["maybe"].append(user.name)
+                        elif type(event["no"]) == list and user.name in event["no"]:
+                            event["no"].remove(user.name)
+                            event["maybe"].append(user.name)
+                        else:
+                            event["maybe"].append(user.name)
+                    else:
+                        event["maybe"] = []
+                        event["maybe"].append(user.name)
+
+                    embed = discord.Embed(title=event["title"], description=event["description"], color=0)
+                    embed.add_field(name="✅ Yes", value=format_availability(event["yes"]), inline=True)
+                    embed.add_field(name="❌ No", value=format_availability(event["no"]), inline=True)
+                    embed.add_field(name="❔ Maybe", value=format_availability(event["maybe"]), inline=True)
+                    await msg.edit(embed=embed)
+                    eventSave()
+
+        except IndexError:
+            await ctx.send("Invalid Event")
+
+
+@client.command()
+@commands.has_role("Advisor")
+async def remove_event(ctx, event: int):
+
+    channel = client.get_channel(837926123492343849)
+    embed = discord.Embed(title="Event Deleted", description=f"__{events_list[event-1]['title']}__", color=0)
+    embed.set_footer(text=f"Event deleted by {ctx.author}")
+    await channel.send(embed=embed)
+
+    await ctx.send(f"Event **{events_list[event-1]['title']}** has been removed")
+    # Remove event
+    events_list.pop(event-1)
+    eventSave()
+
+# --------------------------------------------------------------------------------------------
 
 @client.command()
 async def poll(ctx, question, *options):
@@ -266,6 +556,11 @@ async def poll(ctx, question, *options):
         lll = 0
         for x in range(len(options)):
             await hi.add_reaction(reactions[x])
+
+    channel = client.get_channel(837926123492343849)
+    embed = discord.Embed(title="New Poll Created", description=f"[{question}](https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}/{hi.id})", color=0)
+    embed.set_footer(text=f"Poll created by {ctx.author}")
+    await channel.send(embed=embed)
 
 # Sends welcome message and updates info when a member joins the server
 @client.event
