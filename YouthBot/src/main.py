@@ -1076,4 +1076,4 @@ async def verse(ctx):
         await ctx.send(embed=embed)
 
 
-client.run("")
+client.run("ODE0OTA3MzMzNjY2Mjc1Mzg5.YDkrmA.LlNrhAg6JyETUYART6Lz8jXtAb0")
